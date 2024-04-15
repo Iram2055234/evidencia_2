@@ -1,0 +1,772 @@
+import datetime
+import pandas as pd
+
+# Contador para generar las claves
+contador_claves = 1
+
+# Lista para almacenar pacientes registrados
+pacientes_registrados = []
+
+# Contador para generar folios de las citas
+contador_folios = 1
+
+# Lista para almacenar citas programadas
+citas_programadas = []
+
+# Lista para almacenar citas realizadas
+citas_realizadas = []
+
+# Funcion para generar las claves
+def generar_clave():
+    global contador_claves
+    clave = contador_claves
+    contador_claves += 1
+    return clave
+
+# Funcion para generar los folios
+def generar_folio():
+    global contador_folios
+    folio = contador_folios
+    contador_folios += 1
+    return folio
+
+# Funcion para validar la fecha
+def validar_fecha(fecha):
+    try:
+        datetime.datetime.strptime(fecha, '%m/%d/%Y')
+        return True
+    except ValueError:
+        return False
+
+# OPCION DEL MENU 1
+# Funcion para registrar pacientes
+def registrar_pacientes():
+    global contador_claves
+    print("\nRegistro de citas")
+
+    while True:
+        primer_apellido = input("Ingrese el primer apellido del paciente: ")
+        if not primer_apellido:
+            print("El primer apellido no se puede omitir.")
+            continue
+        elif not primer_apellido.replace(" ", "").isalpha():
+            print("No puede contener numeros o caracteres especiales. Intenta de nuevo")
+            continue
+        break
+
+    segundo_apellido = input("Ingrese el segundo apellido del paciente (opcional): ")
+    while segundo_apellido and not segundo_apellido.isalpha():
+        print("El segundo apellido debe contener solo letras.")
+        segundo_apellido = input("Ingrese el segundo apellido del paciente (opcional): ")
+
+    while True:
+        nombre = input("Ingrese el nombre del paciente: ")
+        if not nombre:
+            print("El nombre no se puede omitir.")
+            continue
+        elif not nombre.replace(" ", "").isalpha():
+            print("No puede contener numeros o caracteres especiales. Intenta de nuevo")
+            continue
+        break
+
+    while True:
+        fecha_nacimiento = input("Ingrese la fecha de nacimiento del paciente (MM/DD/AAAA): ")
+        if not fecha_nacimiento:
+            print("La fecha de nacimiento no se puede omitir")
+            continue
+        if not validar_fecha(fecha_nacimiento):
+            print("Formato de fecha inválido. Utilice el formato MM/DD/AAAA.")
+            continue
+        fecha_nacimiento = datetime.datetime.strptime(fecha_nacimiento, '%m/%d/%Y')
+        if fecha_nacimiento.date() >= datetime.datetime.now().date():  # Comparar solo las fechas sin tener en cuenta la hora
+            print("La fecha de nacimiento debe ser anterior al día actual.")
+        else:
+            break
+
+
+    while True:
+        sexo = input("Ingrese el sexo del paciente ((H)ombre, (M)ujer, (N)o contestó): ").upper()
+        if not sexo:
+            print("Esta parte no se puede omitir")
+            continue
+        elif sexo not in ['H', 'M', 'N']:
+            print("Opción inválida. Por favor, ingrese (H) para Hombre, (M) para Mujer o (N) para No contestó")
+            continue
+        break
+
+    clave_paciente = generar_clave()
+    print(f"Clave de paciente generada: {clave_paciente}")
+    print(f"Cita registrada exitosamente para el paciente {nombre}")
+
+    pacientes_registrados.append({
+        "clave_paciente": clave_paciente,
+        "primer_apellido": primer_apellido,
+        "segundo_apellido": segundo_apellido,
+        "nombre": nombre,
+        "fecha_nacimiento": fecha_nacimiento,
+        "sexo": sexo
+    })
+
+
+
+# OPCION DEL MENU 2
+def programar_cita():
+    global contador_folios
+
+    if not pacientes_registrados:
+        print("Primero debe registrar un paciente")
+        return
+    print("\nProgramación de citas")
+
+    while True:
+        clave_paciente_input = input("Ingrese la clave del paciente: ")
+        # falta para que mande el mensaje de error si se omitio
+        if not clave_paciente_input.isdigit():
+            print("La clave del paciente debe ser un valor numérico.")
+            continue
+        clave_paciente = int(clave_paciente_input)
+        paciente_encontrado = False
+        for paciente in pacientes_registrados:
+            if paciente["clave_paciente"] == clave_paciente:
+                paciente_encontrado = True
+                break
+
+        if not paciente_encontrado:
+            print("La clave del paciente no existe. Primero registre un paciente.")
+            return  # Sale de la función si la clave del paciente no existe
+
+        break
+
+    while True:
+        fecha_cita = input("Ingrese la fecha de la cita (MM/DD/AAAA): ")
+        if not fecha_cita:
+            print("Debe ingresar la fecha de la cita")
+            continue
+        if not validar_fecha(fecha_cita):
+            print("Formato de fecha inválido. Utilice el formato MM/DD/AAAA.")
+            continue
+        fecha_cita = datetime.datetime.strptime(fecha_cita, '%m/%d/%Y')
+        if fecha_cita <= datetime.datetime.now() or fecha_cita >= datetime.datetime.now() + datetime.timedelta(days=60):
+            print("La fecha de la cita debe ser posterior al día actual y no mayor a 60 días respecto de esta.")
+            continue
+         # Verificar si la fecha programada es domingo
+        if fecha_cita.weekday() == 6:  # domingo es el día 6
+            print("La fecha programada cae en domingo.")
+            # Proponer al usuario programar la cita para el sábado anterior
+            fecha_propuesta = fecha_cita - datetime.timedelta(days=1)  # Resta un día para ir al sábado anterior
+            confirmacion = input(f"¿Desea programar la cita para el sábado {fecha_propuesta.strftime('%m/%d/%Y')}? (S/N): ").upper()
+            if confirmacion == "S":
+                fecha_cita = fecha_propuesta
+            else:
+                continue  # Vuelve a pedir la fecha de la cita
+        break
+        # break
+
+    while True:
+        turno_cita = input("Ingrese el turno de la cita (1 - mañana, 2 - mediodía, 3 - tarde): ")
+        if not turno_cita:
+            print("Debe ingresar un turno")
+            continue
+        elif turno_cita not in ['1', '2', '3']:
+            print("Turno de cita inválido. Por favor, ingrese 1 para mañana, 2 para mediodía o 3 para tarde.")
+            continue
+        break
+
+    folio_cita = generar_folio()
+    print(f"Folio de cita generado: {folio_cita}")
+    print("Cita programada exitosamente.")
+
+    citas_programadas.append({
+        "folio_cita": folio_cita,
+        "clave_paciente": clave_paciente,
+        "fecha_cita": fecha_cita,
+        "turno_cita": int(turno_cita)
+    })
+
+def realizar_cita_programada():
+
+    # if not citas_realizadas:
+        #print("Primero debera programar una cita")
+        # return
+    print("\nRealización de citas programadas")
+
+    while True:
+        folio_cita_input = input("Ingrese el folio de la cita: ")
+        if not folio_cita_input.isdigit():
+            print("El folio de la cita debe ser un valor numérico.")
+            continue
+        folio_cita = int(folio_cita_input)
+
+        cita_encontrada = False
+        for cita in citas_programadas:
+            if cita["folio_cita"] == folio_cita:
+                cita_encontrada = True
+                break
+
+        if not cita_encontrada:
+            print("El folio de la cita no existe.")
+            return  # Sale de la función si el folio de la cita no existe
+        break
+
+    # Hay que checar esto, no tiene caso pedir la clave si ya ingreso el folio
+    while True:
+        clave_paciente_input = input("Ingrese la clave del paciente: ")
+        if not clave_paciente_input.isdigit():
+            print("La clave del paciente debe ser un valor numérico.\nTampoco se puede omitir")
+            continue
+        clave_paciente = int(clave_paciente_input)
+
+        paciente_encontrado = False
+        for paciente in pacientes_registrados:
+            if paciente["clave_paciente"] == clave_paciente:
+                paciente_encontrado = True
+                break
+
+        if not paciente_encontrado:
+            print("La clave del paciente no existe.")
+            return  # Sale de la función si la clave del paciente no existe
+        break
+
+    # Hora de llegada del paciente
+    hora_llegada = datetime.datetime.now().strftime('%H:%M:%S')
+    print(f"Hora de llegada del paciente: {hora_llegada}")  # Muestra la hora de llegada
+
+    # Peso en kg del paciente
+    while True:
+        peso = input("Ingrese el peso en kilogramos del paciente: ")
+        if not peso:
+            print("Debe ingresa el peso")
+            continue
+        if not peso.replace(".", "").isdigit():
+            print("El peso debe ser un valor numérico.")
+            continue
+        peso = float(peso)
+        break
+
+    # Estatura en cm
+    while True:
+        estatura = input("Ingrese la estatura en centímetros del paciente: ")
+        if not estatura:
+            print("Debe ingresar la estatura")
+            continue
+        if not estatura.replace(".", "").isdigit():
+            print("La estatura debe ser un valor numérico.")
+            continue
+        estatura = float(estatura)
+        break
+
+    # Valores de presion tanto sistolica como asistolica
+    while True:
+        valores_presion = input("Ingrese los valores de presión tanto sistólica como diastólica en el formato (999/999): ")
+        if not valores_presion:
+            print("No se pueden omitir los valores de presión.")
+            continue
+
+        partes = valores_presion.split('/')
+        if len(partes) != 2:
+            print("Debe ingresar dos valores separados por una diagonal '/'.")
+            continue
+        sistolica, diastolica = partes
+
+        if not (sistolica.isdigit() and diastolica.isdigit()):
+            print("Los valores de presión deben ser numéricos.")
+            continue
+
+        sistolica = sistolica.zfill(3)
+        diastolica = diastolica.zfill(3)
+
+        valores_presion = f"{sistolica}/{diastolica}"
+        print(f"Los valores de presión arterial son: {valores_presion}")
+        break
+
+    # Diagnostico
+    txt_libre = []
+    while True:
+        txt_libre=input("Ingrese su diagnostico: ")
+        if not txt_libre:
+            print("No se puede omitir")
+            continue
+        elif len(txt_libre) > 200:
+            print("No puedes sobrepasar de los 200 caracteres.")
+            continue
+        else:
+            print("Su diagnostico se ha guardado correctamente")
+            diagnostico = txt_libre
+        break
+
+
+    # Guardar datos de la cita realizada, incluyendo la hora de llegada
+    citas_realizadas.append({
+        "folio_cita": folio_cita,
+        "clave_paciente": clave_paciente,
+        "hora_llegada": hora_llegada,
+        "peso": peso,
+        "estatura": estatura,
+        "valores presion": valores_presion,
+        "diagnostico": diagnostico
+    })
+
+    print("Cita realizada exitosamente.")
+
+# Por fecha
+def cancelacion_citas_por_fecha():
+    print("\nBúsqueda de citas por fecha")
+    while True:
+        fecha_input = input("Ingrese la fecha para buscar citas (MM/DD/AAAA): ")
+        if not validar_fecha(fecha_input):
+            print("Formato de fecha inválido. Utilice el formato MM/DD/AAAA.")
+            continue
+        fecha_buscada = datetime.datetime.strptime(fecha_input, '%m/%d/%Y')
+        citas_encontradas = False
+        print("\nCitas programadas para el", fecha_buscada.strftime('%m/%d/%Y') + ":")
+        print("Nombre del Paciente\tNombre del Turno")
+        for cita in citas_programadas:
+            if cita["fecha_cita"].date() == fecha_buscada.date() and cita["fecha_cita"] > datetime.datetime.now():
+                paciente = next((p for p in pacientes_registrados if p["clave_paciente"] == cita["clave_paciente"]), None)
+                if paciente:
+                    nombre_completo = f"{paciente['nombre']} {paciente['primer_apellido']}"
+                    if paciente["segundo_apellido"]:
+                        nombre_completo += f" {paciente['segundo_apellido']}"
+                    turno = ""
+                    if cita["turno_cita"] == 1:
+                        turno = "mañana"
+                    elif cita["turno_cita"] == 2:
+                        turno = "mediodía"
+                    elif cita["turno_cita"] == 3:
+                        turno = "tarde"
+                    print(f"{nombre_completo}\t\t{turno}")
+                    citas_encontradas = True
+        if not citas_encontradas:
+            print("No se encontraron citas programadas para la fecha indicada.")
+        break
+
+# Checar aqui bien esta parte, creo que no cumple como tal con lo que pide el archivo
+def cancelacion_citas_por_paciente():
+    # Verificar si hay citas programadas
+    if not citas_programadas:
+        print("No hay citas programadas para cancelar.")
+        return
+
+    # Crear un diccionario para mapear claves de paciente a nombres completos
+    clave_a_nombre = {}
+    for paciente in pacientes_registrados:
+        clave = paciente["clave_paciente"]
+        nombre_completo = " ".join(filter(None, [paciente["primer_apellido"], paciente["segundo_apellido"], paciente["nombre"]]))
+        clave_a_nombre[clave] = nombre_completo
+
+    # Crear un diccionario para mapear claves de paciente a sus citas futuras
+    citas_por_paciente = {}
+    for cita in citas_programadas:
+        clave_paciente = cita["clave_paciente"]
+        if clave_paciente not in citas_por_paciente:
+            citas_por_paciente[clave_paciente] = []
+        citas_por_paciente[clave_paciente].append(cita)
+
+    # Mostrar lista de pacientes con citas programadas
+    pacientes_con_citas = False
+    print("Pacientes con citas programadas:")
+    for clave, nombre in clave_a_nombre.items():
+        if clave in citas_por_paciente:
+            pacientes_con_citas = True
+            print(f"Clave: {clave}, Nombre: {nombre}")
+
+    if not pacientes_con_citas:
+        print("No hay pacientes con citas programadas.")
+        return
+
+    # Pedir al usuario que seleccione la clave de paciente
+    while True:
+        clave_input = input("Ingrese la clave del paciente para ver sus citas (o '0' para cancelar): ")
+        if clave_input == '0':
+            print("Cancelando operación.")
+            return
+        if clave_input.isdigit():
+            clave_paciente = int(clave_input)
+            if clave_paciente in citas_por_paciente:
+                break
+            else:
+                print("El paciente seleccionado no tiene citas programadas.")
+        else:
+            print("Ingrese una clave numérica válida.")
+
+    # Mostrar las citas futuras del paciente seleccionado
+    print(f"Citas futuras para el paciente {clave_a_nombre[clave_paciente]}:")
+    for cita in citas_por_paciente[clave_paciente]:
+        print(f"Folio: {cita['folio_cita']}, Fecha: {cita['fecha_cita']}, Turno: {cita['turno_cita']}")
+
+# SUBMENU DE CANCELACION DE CITAS
+def cancelacion_de_citas():
+    while True:
+        print("\nMenú de cancelacion de Citas")
+        print("1. Busqueda por fecha")
+        print("2. Busqueda por paciente")
+        print("3. Volver al menú anterior")
+
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            cancelacion_citas_por_fecha()
+        elif opcion == "2":
+            cancelacion_citas_por_paciente()
+        elif opcion == "3":
+            print("Volviendo al menú anterior")
+            break
+        else:
+            print("Opción inválida. Por favor, seleccione una opción del menú.")
+
+
+# OPCION DEL MENU 3
+def generar_reporte_citas_por_periodo():
+    citas_en_periodo = []
+    while True:
+        try:
+            fecha_inicio = input("\nIngrese la fecha de inicio del periodo (MM/DD/AAAA): ")
+            fecha_inicio = datetime.datetime.strptime(fecha_inicio, "%m/%d/%Y").date()
+            break
+        except ValueError:
+            print("Fecha de inicio inválida. Intente nuevamente.")
+            continue
+    while True:
+        try:
+            fecha_fin = input("Ingrese la fecha de fin del periodo (MM/DD/AAAA): ")
+            fecha_fin = datetime.datetime.strptime(fecha_fin, "%m/%d/%Y").date()
+            if fecha_fin >= fecha_inicio:
+                break
+            else:
+                print("La fecha de fin debe ser posterior o igual a la fecha de inicio. Intente nuevamente.")
+                continue
+        except ValueError:
+            print("Fecha de fin inválida. Intente nuevamente.")
+            continue
+
+    for cita in citas_programadas:
+        fecha_cita = cita["fecha_cita"].date()
+        if fecha_inicio <= fecha_cita <= fecha_fin:
+            clave_paciente = cita["clave_paciente"]
+            turno = cita["turno_cita"]
+
+            paciente_encontrado = next((paciente for paciente in pacientes_registrados if paciente["clave_paciente"] == clave_paciente), None)
+            nombre_paciente = f"{paciente_encontrado['nombre']} {paciente_encontrado['primer_apellido']} {paciente_encontrado['segundo_apellido']}" if paciente_encontrado else "Desconocido"
+
+            fila = "{:<10} {:<27} {:<20} {:<10}".format(cita["folio_cita"], nombre_paciente.capitalize(), cita["fecha_cita"].strftime('%m/%d/%Y'), turno)
+            citas_en_periodo.append(fila)
+
+    # Imprimir las citas encontradas
+    if citas_en_periodo:
+        print("\nCitas encontradas en el periodo indicado:")
+        print("{:<10} {:<27} {:<20} {:<10}".format("Folio", "Nombre del Paciente", "Fecha de Cita", "Turno"))
+        print("-" * 80)
+        for fila in citas_en_periodo:
+            print(fila)
+    else:
+        print("No hay citas en el periodo indicado")
+
+def generar_reporte_citas_por_paciente():
+    print("\nReporte de citas por paciente")
+    paciente_encontrado = False
+
+    # Checar esto, se puede mejorar
+    while True:
+        clave_paciente = input("Ingrese la clave del paciente: ")
+
+        if clave_paciente.strip() == "":
+            print("Debe ingresar la clave del paciente.")
+            continue
+
+        if not clave_paciente.isdigit():
+            print("La clave del paciente debe ser un valor numérico.")
+            continue
+
+        clave_paciente = int(clave_paciente)
+
+        for paciente in pacientes_registrados:
+            if paciente["clave_paciente"] == clave_paciente:
+                paciente_encontrado = True
+                print(f"\nCitas programadas para el paciente {paciente['nombre']} {paciente['primer_apellido']}:")
+                print("Folio de Cita\tFecha de Cita")
+
+                for cita in citas_programadas:
+                    if cita["clave_paciente"] == clave_paciente:
+                        print(f"{cita['folio_cita']}\t\t{cita['fecha_cita'].strftime('%m/%d/%Y')}")
+
+                break
+
+        if not paciente_encontrado:
+            print("La clave del paciente no existe.")
+            return
+        else:
+            break
+
+
+def generar_reporte_completo_pacientes():
+    print("\nReporte completo de pacientes registrados")
+    print("{:<6} {:<20} {:<20} {:<10} {:<19} {:<10} {:<10}".format(
+        "Clave", "Primer Apellido", "Segundo Apellido", "Nombre", "Fecha de Nacimiento", "Peso (kg)", "Estatura (m)"))
+
+    for paciente in pacientes_registrados:
+        segundo_apellido = paciente.get("segundo_apellido", "")
+        clave = str(paciente['clave_paciente'])
+        primer_apellido = paciente['primer_apellido']
+        segundo_apellido = segundo_apellido
+        nombre = paciente['nombre']
+        fecha_nacimiento = paciente['fecha_nacimiento'].strftime('%m/%d/%Y')
+        # Agregar aqui las cosas nuevas
+
+        # Buscar información de peso y estatura en citas realizadas
+        peso = "N/A"
+        estatura = "N/A"
+        for cita in citas_realizadas:
+            if cita["clave_paciente"] == paciente["clave_paciente"]:
+                peso = str(cita["peso"]) + " kg"
+                estatura = str(cita["estatura"]) + " m"
+                break
+
+        # Formatear la cadena para tabular lo
+
+        print("{:<6} {:<20} {:<20} {:<10} {:<19} {:<10} {:<10}".format(
+            clave, primer_apellido, segundo_apellido, nombre, fecha_nacimiento, peso, estatura))
+
+def buscar_paciente_por_clave():
+    print("\nBúsqueda de paciente por clave")
+
+    while True:
+        clave_paciente_input = input("Ingrese la clave del paciente: ")
+
+        if not clave_paciente_input:
+            print("Debe ingresar la clave del paciente.")
+            continue
+
+        if not clave_paciente_input.isdigit():
+            print("La clave del paciente debe ser un valor numérico.")
+            continue
+
+        clave_paciente = int(clave_paciente_input)
+
+        # Checar esto
+        paciente_encontrado = False
+        for paciente in pacientes_registrados:
+            if paciente["clave_paciente"] == clave_paciente:
+                paciente_encontrado = True
+                print("\nDatos del paciente:")
+                print("Clave   Primer Apellido   Segundo Apellido   Nombre   Fecha de Nacimiento   Peso (kg)   Estatura (m)")
+                segundo_apellido = paciente.get("segundo_apellido", "")
+                clave = str(paciente['clave_paciente']).ljust(6)
+                primer_apellido = paciente['primer_apellido'].ljust(17)
+                segundo_apellido = segundo_apellido.ljust(18)
+                nombre = paciente['nombre'].ljust(10)
+                fecha_nacimiento = paciente['fecha_nacimiento'].strftime('%m/%d/%Y')
+
+                # Buscar información de peso y estatura en citas realizadas
+                peso = "N/A"
+                estatura = "N/A"
+                for cita in citas_realizadas:
+                    if cita["clave_paciente"] == clave_paciente:
+                        peso = str(cita["peso"]) + " kg"
+                        estatura = str(cita["estatura"]) + " m"
+                        break
+
+                print("{:<6}{:<17}{:<18}{:<10}{:<20}{:<11}{:<13}".format(clave, primer_apellido, segundo_apellido, nombre, fecha_nacimiento, peso, estatura))
+                return
+
+        if not paciente_encontrado:
+            print("La clave del paciente no existe.")
+            break
+
+def buscar_paciente_por_apellidos_y_nombres():
+    print("\nBúsqueda de pacientes por apellidos y nombres")
+
+    while True:
+        primer_apellido = input("Ingrese el primer apellido del paciente: ")
+        if not primer_apellido.isalpha():
+            print("El primer apellido debe contener solo letras.")
+            continue
+        break
+
+    while True:
+        segundo_apellido = input("Ingrese el segundo apellido del paciente (opcional): ")
+        if segundo_apellido and not segundo_apellido.replace(" ", "").isalpha():
+            print("El segundo apellido debe contener solo letras.")
+            continue
+        break
+
+    while True:
+        nombre = input("Ingrese el nombre del paciente: ")
+        if not nombre.replace(" ", "").isalpha():
+            print("El nombre debe contener solo letras.")
+            continue
+        break
+
+    pacientes_encontrados = []
+    for paciente in pacientes_registrados:
+        if paciente["primer_apellido"] == primer_apellido and \
+           paciente["nombre"] == nombre and \
+           (not segundo_apellido or paciente["segundo_apellido"] == segundo_apellido):
+            pacientes_encontrados.append(paciente)
+
+    if pacientes_encontrados:
+        print("\nDatos de los pacientes encontrados:")
+        print("Clave   Primer Apellido   Segundo Apellido   Nombre   Fecha de Nacimiento   Peso (kg)   Estatura (m)")
+        for paciente in pacientes_encontrados:
+            segundo_apellido = paciente.get("segundo_apellido", "")
+            clave = str(paciente['clave_paciente']).ljust(6)
+            primer_apellido = paciente['primer_apellido'].ljust(17)
+            segundo_apellido = segundo_apellido.ljust(18)
+            nombre = paciente['nombre'].ljust(10)
+            fecha_nacimiento = paciente['fecha_nacimiento'].strftime('%m/%d/%Y')
+
+            # Buscar información de peso y estatura en citas realizadas
+            peso = "N/A"
+            estatura = "N/A"
+            for cita in citas_realizadas:
+                if cita["clave_paciente"] == paciente["clave_paciente"]:
+                    peso = str(cita["peso"]) + " kg"
+                    estatura = str(cita["estatura"]) + " m"
+                    break
+
+            print("{:<6}{:<17}{:<18}{:<10}{:<20}{:<11}{:<13}".format(clave, primer_apellido, segundo_apellido, nombre, fecha_nacimiento, peso, estatura))
+    else:
+        print("No se encontraron pacientes con los criterios de búsqueda especificados.")
+
+
+def generar_reporte_citas():
+    while True:
+        print("\nMenú de Reportes de Citas")
+        print("1. Reporte de citas por período")
+        print("2. Reporte de citas por paciente")
+        print("3. Volver al menú anterior")
+
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            generar_reporte_citas_por_periodo()
+        elif opcion == "2":
+            generar_reporte_citas_por_paciente()
+        elif opcion == "3":
+            print("Volviendo al menú anterior")
+            break
+        else:
+            print("Opción inválida. Por favor, seleccione una opción del menú.")
+
+def generar_reporte_pacientes():
+    while True:
+        print("\nMenú de Reportes de Pacientes")
+        print("1. Reporte completo de pacientes registrados")
+        print("2. Búsqueda de paciente por clave")
+        print("3. Búsqueda de pacientes por apellidos y nombres")
+        print("4. Volver al menú anterior")
+
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            generar_reporte_completo_pacientes()
+        elif opcion == "2":
+            buscar_paciente_por_clave()
+        elif opcion == "3":
+            buscar_paciente_por_apellidos_y_nombres()
+        elif opcion == "4":
+            print("Volviendo al menú anterior")
+            break
+        else:
+            print("Opción inválida. Por favor, seleccione una opción del menú.")
+
+# CSV
+def guardar_datos(pacientes_registrados, citas_realizadas, citas_programadas):
+    if len(pacientes_registrados) > 0:
+        diccionario_datos_pacientes = {
+            "clave": [paciente["clave_paciente"] for paciente in pacientes_registrados],
+            "primer apellido": [paciente["primer_apellido"] for paciente in pacientes_registrados],
+            "segundo apellido": [paciente.get("segundo_apellido", "") for paciente in pacientes_registrados],
+            "fecha de nacimiento": [paciente["fecha_nacimiento"].strftime('%m/%d/%Y') for paciente in pacientes_registrados],
+            "nombre": [paciente["nombre"] for paciente in pacientes_registrados],
+        }
+        datos_pacientes_df = pd.DataFrame(diccionario_datos_pacientes)
+        datos_pacientes_df.to_csv("partidas_de_pacientes.csv", header=True, index=False)
+        print("Datos de pacientes guardados en 'partidas_de_pacientes.csv'.")
+
+    if len(citas_realizadas) > 0:
+        diccionario_datos_crealizadas = {
+            "peso": [cita["peso"] for cita in citas_realizadas],
+            "estatura": [cita["estatura"] for cita in citas_realizadas],
+            "hora_llegada": [cita["hora_llegada"] for cita in citas_realizadas]
+        }
+        datos_crealizadas_df = pd.DataFrame(diccionario_datos_crealizadas)
+        datos_crealizadas_df.to_csv("citas_realizadas.csv", header=True, index=False)
+        print("Datos de citas realizadas guardados en 'citas_realizadas.csv'.")
+
+    if len(citas_programadas) > 0:
+        diccionario_datos_cprogramadas = {
+            "turno": [cita["turno_cita"] for cita in citas_programadas],
+            "fecha": [cita["fecha_cita"].strftime('%m/%d/%Y') for cita in citas_programadas],
+        }
+        datos_cprogramadas_df = pd.DataFrame(diccionario_datos_cprogramadas)
+        datos_cprogramadas_df.to_csv("citas_programadas.csv", header=True, index=False)
+        print("Datos de citas programadas guardados en 'citas_programadas.csv'.")
+
+# OPCIONES MENU PRINCIPAL, INCLUYENDO OPCION 4
+# Función para mostrar el menú principal
+def menu_principal():
+    while True:
+        print("\nMenú Principal")
+        print("1. Registro de pacientes")
+        print("2. Citas")
+        print("3. Consultas y reportes")
+        print("4. Salir")
+
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "4":
+            while True:
+                confirmacion = input("¿Está seguro de que desea salir del programa? (S/N): ").upper()
+                if confirmacion == "S":
+                    print("Saliendo del programa...")
+                    guardar_datos(pacientes_registrados, citas_realizadas, citas_programadas)
+                    return  # Salir del programa
+                elif confirmacion == "N":
+                    break  # Volver al menú principal
+                else:
+                    print("Por favor, ingrese S para confirmar la salida o N para volver al menú principal.")
+        elif opcion == "1":
+            registrar_pacientes()
+        elif opcion == "2":
+            while True:
+                print("\nMenú de Citas")
+                print("1. Programacion de citas")
+                print("2. Realizacion de citas programadas")
+                print("3. Cancelacion de citas")
+                print("4. Volver al menú principal")
+
+                opcion_citas = input("Seleccione una opcion: ")
+                if opcion_citas == "1":
+                    programar_cita()
+                elif opcion_citas =="2":
+                    realizar_cita_programada()
+                elif opcion_citas =="3":
+                    cancelacion_de_citas()
+                elif opcion_citas == "4":
+                    print("Volviendo al menu de citas")
+                    break
+                else:
+                    print("Opción inválida. Por favor, seleccione una opción del menú.")
+        elif opcion == "3":
+            while True:
+                print("\nMenú de Consultas y Reportes")
+                print("1. Reportes de citas")
+                print("2. Reportes de pacientes")
+                print("3. Volver al menú principal")
+
+                opcion_reportes = input("Seleccione una opción: ")
+
+                if opcion_reportes == "1":
+                    generar_reporte_citas()
+                elif opcion_reportes == "2":
+                    generar_reporte_pacientes()
+                elif opcion_reportes == "3":
+                    print("Volviendo al menú principal")
+                    break
+                else:
+                    print("Opción inválida. Por favor, seleccione una opción del menú.")
+        else:
+            print("Opción no válida. Por favor, seleccione una opción válida.")
+
+# Llamar a la función del menú principal para iniciar el programa
+menu_principal()
